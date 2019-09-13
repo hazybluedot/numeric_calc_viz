@@ -181,8 +181,8 @@ function dragstarted(d) {
 }
 
 function dragged(d) {
-    console.log('drag dragged');
-    console.log(d);
+    //console.log('drag dragged');
+    //console.log(d);
     
     d.time = x.invert(d3.event.x);
     d.value = func(d.time);
