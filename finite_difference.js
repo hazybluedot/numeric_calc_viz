@@ -56,28 +56,34 @@ let drag = d3.drag()
     .on('drag', dragged)
     .on('end', dragended);
 
-var chart = d3.select('#chart')
-    .append('svg')
-    .attr('class', 'chart')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
-    .append('g')
-    .attr('transform',
-	  'translate(' + margin.left + ', ' + margin.top + ')');
 
-chart.append('g')
-    .attr('class', 'x axis')
-    .call(xAxis);
+var charts = ['#derivation_chart', '#integration_chart'].reduce(function(acc, chart_id) {
+    var chart = d3.select(chart_id)
+	.append('svg')
+	.attr('class', 'chart')
+	.attr('width', width + margin.left + margin.right)
+	.attr('height', height + margin.top + margin.bottom)
+	.append('g')
+	.attr('transform',
+	      'translate(' + margin.left + ', ' + margin.top + ')');
 
-chart.append('g')
-    .attr('class', 'y axis')
-    .attr('transform', 'translate(0,' + height + ')')
-    .call(yAxis);
+    chart.append('g')
+	.attr('class', 'x axis')
+	.call(xAxis);
 
-chart.append('path')
-    .attr('class', 'line')
-    .data([data])
-    .attr('d', lineFunc);
+    chart.append('g')
+	.attr('class', 'y axis')
+	.attr('transform', 'translate(0,' + height + ')')
+	.call(yAxis);
+
+    chart.append('path')
+	.attr('class', 'line')
+	.data([data])
+	.attr('d', lineFunc);
+
+    acc[chart_id] = chart;
+    return acc;
+}, {});
 
 // draw the finite difference line
 var pdata = [p1, p1 + dint].map(function(d) {
@@ -85,7 +91,8 @@ var pdata = [p1, p1 + dint].map(function(d) {
 		value: func(d)};
 });
 
-var fdiffg = chart.append('g')
+//Derivative chart
+var fdiffg = charts['#derivation_chart'].append('g')
     .attr('class', 'finite-diff');
 
 fdiffg.append('path')
@@ -103,8 +110,6 @@ fdiffg.selectAll('circle')
 
 // Draw the derivative and tangent line
 function ddata(d) {
-    //console.log('ddata(d) for d');
-    //console.log(d);
     var t = (d[1].time + d[0].time) / 2;
     return [
 	{ time: t,
@@ -114,7 +119,8 @@ function ddata(d) {
     ];
 }
 
-var derivg = chart.append('g')
+var dchart = charts['#derivation_chart'];
+var derivg = dchart.append('g')
     .data(ddata(pdata))
     .attr('class', 'derivative');
     //.attr('transform', function(d) { return 'translate(' + x(d.time) + ',' + y(d.value) + ')'; });
@@ -141,7 +147,7 @@ function derivativeText(d) {
     return 'd/dt = ' + d3.format(',.2f')(dd.dvalue);
 }
 
-var legend = chart.append('g')
+var legend = dchart.append('g')
     .attr('class', 'legend')
     .attr('transform', 'translate(' + 10 + ',' + 100 + ')');
 
@@ -157,7 +163,7 @@ legend.append('text')
     .text(derivativeText);
 
 function drawFiniteDiff(pdata) {
-    var g = chart.select('g.finite-diff');
+    var g = charts['#derivation_chart'].select('g.finite-diff');
     
     g.select('path')
 	.data([pdata])
@@ -197,16 +203,16 @@ function dragged(d) {
 	});
     drawFiniteDiff(pdata);
 
-    chart.select('g.derivative').selectAll('circle')
+    dchart.select('g.derivative').selectAll('circle')
 	.data([ d ])
 	.attr('cx', function(d) { return x(d.time); })
 	.attr('cy', function(d) { return y(d.value); });
    
-    chart.select('g.legend text')
+    dchart.select('g.legend text')
 	.data([pdata])
 	.text(finiteDiffText);
 
-    chart.select('#text-derivative')
+    dchart.select('#text-derivative')
 	.data([pdata])
 	.text(derivativeText);
     
@@ -214,4 +220,32 @@ function dragged(d) {
 
 function dragended(d) {
     d3.select(this).classed('active', false);
+}
+
+
+int_chart(charts['#integration_chart'], 8);
+
+function int_chart(chart, npts) {
+    var range = x.domain();
+    var intervals = d3.range(npts).map(function(d) {
+	return range[0]*(npts - d -1)/(npts - 1) + (d/(npts-1))*range[1];
+    });
+
+    /*chart.selectAll('circle')
+	.data(intervals)
+	.enter().append('area')
+	.attr('cx', function(d) { return x(d); })
+	.attr('cy', function(d) { return y(func(d)); })
+	.attr('r', 2);*/
+    var pint = (range[1] - range[0] / npts);
+    var area= d3.area()
+	.x0(function(d) { return x(d - pint/2); })
+	.x1(function(d) { return x(d + pint/2); })
+	.y0(y.domain()[0])
+	.y1(function(d) { return y(func(d)); });
+
+    chart.append('path')
+	.data(intervals)
+	.attr('class', 'area')
+	.attr('d', area);
 }
