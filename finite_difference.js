@@ -56,6 +56,26 @@ let drag = d3.drag()
     .on('drag', dragged)
     .on('end', dragended);
 
+let hdrag = d3.drag()
+    .on('start', function(d, idx) {
+	console.log('drag start on d');
+	console.log(d);
+	console.log(idx);
+	console.log('and this');
+	console.log(this);
+	d3.select(this).classed('active', true);
+    })
+    .on('drag', function(d,idx) {
+	console.log('drag on d');
+	console.log(d);
+	console.log(idx);
+	console.log('and this');
+	console.log(this);
+    })
+    .on('end', function(d) {
+	d3.select(this).classed('active', false);
+    });
+
 var chart = d3.select('#chart')
     .append('svg')
     .attr('class', 'chart')
@@ -170,14 +190,13 @@ function drawFiniteDiff(pdata) {
 	.attr('r', 5);
 }
 
-
 fdiffg.selectAll('g.finite-diff circle, g.finite-diff path')
-    .call(drag);
+    .call(hdrag);
 
 var xdragstart = 0;
 function dragstarted(d) {
     //xdragstart = x.invert(d3.event.x);
-    d3.select(this).raise().classed('active', true);
+    d3.select(this).classed('active', true);
 }
 
 function dragged(d) {
