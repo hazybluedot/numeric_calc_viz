@@ -243,4 +243,3 @@ function derivative_chart(chart) {
 	d3.select(this).classed('active', false);
     }
 }
-
