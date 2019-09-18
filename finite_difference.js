@@ -101,17 +101,37 @@ let charts = ['#derivative_chart', '#integral_chart'].reduce(function(charts, do
 derivative_chart(charts['#derivative_chart']);
 integral_chart(charts['#integral_chart']);
 
+$('#slider-ntraps').on('draged', function(e) {
+    console.log('slider-traps draged', e);
+});
+
 function integral_chart(chart) {
     let interval = [-4, 4];
     let div = 6;
 
+    let area = d3.area()
+	.x(function(d) { return x(d.time); })
+	.y0(height)
+	.y1(function(d) { return y(func(d.time)); });
+
+    $('#slider-ntraps').on('input', function(e) {
+	div = e.target.value;
+	let data = trapdata(interval, div);
+	console.log('trapdata', data);
+	enterTraps(data);
+	exitTraps(data);
+    });
+
+    enterTraps(trapdata(interval, div));
     console.log(y.domain());
     console.log(d3.extent(interval));
 
-    function trapdata(interval) {
+    function trapdata(interval, div) {
 	let inc = (interval[1] - interval[0])/div;
 	return d3.range(div).map(function(d) {
-	    return [interval[0] + d*inc, interval[0] + (d+1)*inc];
+	    return [{ idx: d, time: interval[0] + d*inc},
+		    { idx: d, time: interval[0] + (d+1)*inc}];
+	    
 	});
     }
 
@@ -121,6 +141,23 @@ function integral_chart(chart) {
 	});
     };
 
+    function updateTraps(data) {
+    }
+    
+    function enterTraps(data) {
+	chart.selectAll('.area-trap')
+	    .data(data, function(d) { return d.idx; })
+	    .enter().append('path')
+	    .attr('class', 'area area-trap')
+	    .attr('d', area);
+    }
+
+    function exitTraps(data) {
+	chart.selectAll('.area-trap')
+	    .data(data, function(d) { return d.idx; })
+	    .exit().remove();
+    }
+    
     let draggedidx = null;
     let drag = d3.drag()
 	.on('start', function(e) {
@@ -137,12 +174,6 @@ function integral_chart(chart) {
 	    d3.select(this).classed('active', false);
 	});
 
-    let area = d3.area()
-	.x(function(d) { return x(d); })
-	.y0(height)
-	.y1(function(d) { return y(func(d)); });
-
-
     //drawInterval(interval);
 	
     
@@ -152,12 +183,6 @@ function integral_chart(chart) {
 	    .attr('class', 'area')
 	    .attr('d', area);
 	    });*/
-
-    chart.selectAll('.trap')
-	.data(trapdata(interval))
-	.enter().append('path')
-	.attr('class', 'area area-trap')
-	.attr('d', area);
     
     chart.selectAll('.interval')
 	.data(idata(interval))
