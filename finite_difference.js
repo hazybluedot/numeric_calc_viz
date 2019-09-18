@@ -36,8 +36,7 @@ var lineFunc = d3.line()
     .y(function(d) {
 	return y(d.value);
     });
-
-
+	
 var margin = {top: 20, right: 20, bottom: 30, left: 50},
     width = 960 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
@@ -71,8 +70,8 @@ let hdrag = d3.drag()
 	d3.select(this).classed('active', false);
     });
 
-let charts = ['#derivative_chart', '#ingeral_chart'].reduce(function(charts, domid) {
-    var chart = d3.select('#derivative_chart')
+let charts = ['#derivative_chart', '#integral_chart'].reduce(function(charts, domid) {
+    var chart = d3.select(domid)
 	.append('svg')
 	.attr('class', 'chart')
 	.attr('width', width + margin.left + margin.right)
@@ -100,6 +99,87 @@ let charts = ['#derivative_chart', '#ingeral_chart'].reduce(function(charts, dom
 }, []);
 
 derivative_chart(charts['#derivative_chart']);
+integral_chart(charts['#integral_chart']);
+
+function integral_chart(chart) {
+    let interval = [-4, 4];
+    let div = 6;
+
+    console.log(y.domain());
+    console.log(d3.extent(interval));
+
+    function trapdata(interval) {
+	let inc = (interval[1] - interval[0])/div;
+	return d3.range(div).map(function(d) {
+	    return [interval[0] + d*inc, interval[0] + (d+1)*inc];
+	});
+    }
+
+    let idata = function(intervale) {
+	return interval.map(function(d) {
+	    return [{ time: d, value: y.domain()[0] }, {time: d, value: func(d)}];
+	});
+    };
+
+    let draggedidx = null;
+    let drag = d3.drag()
+	.on('start', function(e) {
+	    console.log(this, e);
+	    d3.select(this).classed('active', true);
+	    draggedidx = interval.indexOf(e[0].time);
+	})
+	.on('drag', function(e) {
+	    let newx = x.invert(d3.event.x);
+	    interval[draggedidx] = newx;
+	    updateInterval(interval);
+	})
+	.on('end', function(e) {
+	    d3.select(this).classed('active', false);
+	});
+
+    let area = d3.area()
+	.x(function(d) { return x(d); })
+	.y0(height)
+	.y1(function(d) { return y(func(d)); });
+
+
+    //drawInterval(interval);
+	
+    
+    /*data.forEach(function(d) {
+	chart.append('path')
+	    .datum(d)
+	    .attr('class', 'area')
+	    .attr('d', area);
+	    });*/
+
+    chart.selectAll('.trap')
+	.data(trapdata(interval))
+	.enter().append('path')
+	.attr('class', 'area area-trap')
+	.attr('d', area);
+    
+    chart.selectAll('.interval')
+	.data(idata(interval))
+	.enter().append('path')
+	.attr('class', 'line line-interval')
+	.attr('d', lineFunc);
+    
+    function updateInterval(interval) {
+	chart.selectAll('path.line-interval')
+	    .data(idata(interval))
+	    .attr('d', lineFunc);
+
+	chart.selectAll('path.area-trap')
+	    .data(trapdata(interval))
+	    .attr('d', area);
+    }
+    
+    chart.selectAll('.line-interval')
+	.call(drag);
+    
+    chart.select('.line').raise();
+}
 
 function derivative_chart(chart) {
     let drag = d3.drag()
