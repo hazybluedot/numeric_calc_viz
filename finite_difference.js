@@ -162,7 +162,7 @@ function integral_chart(chart) {
 	    acc += h * ((b1 + b2) / 2);
 	    return acc;
 	}, 0);
-	return 'f = ' + d3.format(',.2f')(sum); 
+	return '∑ fdx = ' + d3.format(',.2f')(sum); 
     }
 
     function integralText(interval) {
