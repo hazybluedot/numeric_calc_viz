@@ -10,6 +10,14 @@ method)
 npm install
 ```
 
+Make sure you have `browserify` and `uglifyjs` installed, possibly globaly:
+
+```
+npm i -g browserify
+npm i -g watchify
+npm i -g uglifyjs
+```
+
 # Develop
 
 Open `public/index.html` in your favorite browser and run
