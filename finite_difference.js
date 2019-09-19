@@ -121,6 +121,36 @@ function integral_chart(chart) {
 	d3.select('#ntraps-value').text(div);
     });
 
+    let x0 = null;
+    let drag_translate = d3.drag()
+	.on('start', function(d) {
+	    x0 = x.invert(d3.event.x);
+	})
+	.on('drag', function(d) {
+	    dx = x.invert(d3.event.x) - x0;
+	    x0 = x.invert(d3.event.x);
+	    
+	    let _interval = interval.map(function(d) { return d + dx; });
+	    if (_interval[0] > x.domain()[0] && _interval[1] < x.domain()[1]) {
+		interval = _interval;
+		let data = intervaldata(interval);
+		updateInterval(data);
+		let tdata = trapdata(interval, div);
+		updateTraps(tdata);
+
+		d3.select('#text-trapz')
+		    .datum(tdata)
+		    .text(trapsText);
+		
+		d3.select('#text-integral')
+		    .datum(interval)
+		    .text(integralText);
+	    }
+	})
+	.on('end', function(d) {
+	    x0 = null;
+	});
+
     enterTraps(trapdata(interval, div));
 
     // Add text labels
@@ -178,22 +208,23 @@ function integral_chart(chart) {
 	tdata = trapdata(interval, div);
     
     function updateTraps(data) {
-	chart.selectAll('path.area')
+	chart.selectAll('path.area-trapz')
 	    .data(data)
 	    .attr('d', area);
     }
     
     function enterTraps(data) {
-	chart.selectAll('path.area')
+	chart.selectAll('path.area-trapz')
 	    .data(data)
 	    .enter().append('path')
-	    .attr('class', 'area')
-	    .attr('d', area);
+	    .attr('class', 'area area-trapz')
+	    .attr('d', area)
+	    .call(drag_translate);
 	chart.select('.line-interval').raise();
     }
 
     function exitTraps(data) {
-	chart.selectAll('path.area')
+	chart.selectAll('path.area-trapz')
 	    .data(data)
 	    .exit().remove();
 	chart.select('.line-interval').raise();
@@ -208,20 +239,24 @@ function integral_chart(chart) {
 	})
 	.on('drag', function(e) {
 	    let newx = x.invert(d3.event.x);
-	    interval[draggedidx] = newx;
-	    let data = intervaldata(interval);
-	    updateInterval(data);
-	    let tdata = trapdata(interval, div);
-	    updateTraps(tdata);
+	    let _interval = interval;
+	    _interval[draggedidx] = newx;
 
-	    d3.select('#text-trapz')
-		.datum(tdata)
-		.text(trapsText);
+	    if (_interval[0] > x.domain()[0] && _interval[1] < x.domain()[1]) {
+		interval = _interval;
+		let data = intervaldata(interval);
+		updateInterval(data);
+		let tdata = trapdata(interval, div);
+		updateTraps(tdata);
 
-	    d3.select('#text-integral')
-		.datum(interval)
-		.text(integralText);
+		d3.select('#text-trapz')
+		    .datum(tdata)
+		    .text(trapsText);
 
+		d3.select('#text-integral')
+		    .datum(interval)
+		    .text(integralText);
+	    }
 	})
 	.on('end', function(e) {
 	    d3.select(this).classed('active', false);
@@ -241,6 +276,9 @@ function integral_chart(chart) {
     
     chart.selectAll('.line-interval')
 	.call(drag);
+    
+    chart.selectAll('.area-trapz')
+	.call(drag_translate);
     
     chart.select('.line').raise();
     chart.select('.axis').raise();
@@ -297,29 +335,46 @@ function derivative_chart(chart) {
 
     // Add the text output
     function finiteDiffText(d) {
-	return 'Δf = ' + d3.format(',.2f')((d[1].value - d[0].value) / (d[1].time - d[0].time)); 
+	let delta = d[1].time - d[0].time,
+	    deltaf = (d[1].value - d[0].value) / delta;
+	let lines = ['Δf = ' + d3.format(',.2f')(deltaf),
+		     'h = ' + d3.format(',.2f')(delta)];
+	return lines;
     }
 
     function derivativeText(d) {
-	return 'd/dt = ' + d3.format(',.2f')(d.dvalue);
+	return 'd/dt f = ' + d3.format(',.2f')(d.dvalue);
     }
 
     var legend = chart.append('g')
 	.attr('class', 'legend')
-	.attr('transform', 'translate(' + 10 + ',' + 100 + ')');
+	.attr('transform', 'translate(' + 10 + ',' + 80 + ')');
 
     console.log('pre legend params', params, 'fddata()', fddata(params));
 
-    legend.append('text')
-	.attr('id', 'text-finite-diff')
-	.data([fddata(params)])
-	.text(finiteDiffText);
+    function textLines(params) {
+	let text = [finiteDiffText(fddata(params))];
+	text = [derivativeText(ddata(params))].concat(finiteDiffText(fddata(params)));
+	return text;
+    }
+
+    let text = textLines(params);
 
     legend.append('text')
 	.attr('id', 'text-derivative')
-	.data([ddata(params)])
-	.attr('y', -20)
-	.text(derivativeText);
+	.selectAll('tspan')
+	.data(text).enter()
+	.append('tspan')
+    	.attr('x', 0)
+	.attr('dy', function(d,i) {
+	    console.log('dy d', d, 'i', i);
+	    if (i > 0) {
+		return 20;
+	    } else {
+		return null;
+	    }
+	})
+	.text(function(d) { return d; });
 
     function drawFiniteDiff(pdata) {
 	var g = chart.select('g.finite-diff');
@@ -335,15 +390,15 @@ function derivative_chart(chart) {
 	    .attr('r', 5);
     }
 
+    let x0 = null
     let drag = d3.drag()
 	.on('start', function(d) {
+	    console.log('drag start', this, d);
 	    //xdragstart = x.invert(d3.event.x);
 	    d3.select(this).classed('active', true);
 	})
 	.on('drag', function(d) {
 	    params.p1 = x.invert(d3.event.x);
-	    //d.time = params.p1;
-	    //d.value = func(d.time);
 
 	    updateParams(params);	    
 	})
@@ -351,7 +406,7 @@ function derivative_chart(chart) {
 	    d3.select(this).classed('active', false);
 	});
 
-    derivg.selectAll('circle')
+    chart.selectAll('circle.circle-derivative, g.finite-diff')
 	.call(drag);
 
     function updateParams(params) {
@@ -363,14 +418,13 @@ function derivative_chart(chart) {
 	    .data([ ddata(params) ])
 	    .attr('cx', function(d) { return x(d.time); })
 	    .attr('cy', function(d) { return y(d.value); });
-	
-	    chart.select('g.legend text')
-		.data([fddata(params)])
-		.text(finiteDiffText);
 
-	    chart.select('#text-derivative')
-		.data([ddata(params)])
-		.text(derivativeText);
+	let text = textLines(params);
+	chart.select('g.legend text')
+	    .selectAll('tspan')
+	    .data(text)
+	    .text(function(d) { return d; });
+
     };
     
     // behavior when dragging the finite difference circle or path
