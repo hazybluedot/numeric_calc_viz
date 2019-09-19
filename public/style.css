@@ -1,0 +1,43 @@
+.line {
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 2px;
+}
+
+path.area {
+    fill: lightsteelblue;
+    stroke: none;
+}
+
+.line-finite-diff {
+    stroke: green;
+    stroke-width: 4px;
+    cursor: pointer;
+}
+
+.line-interval {
+    stroke: red;
+    stroke-width: 4px;
+    cursor: pointer;
+}
+
+.circle-finite-diff {
+    cursor: pointer;
+    stroke: black;
+    fill: red;
+}
+
+.circle-derivative {
+    cursor: pointer;
+}
+
+.active {
+    stroke: grey;
+}
+
+path.area-trapz {
+    fill: lightpink;
+    stroke: black;
+    stroke-width: 2px;
+    cursor: pointer;
+}
